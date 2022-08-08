@@ -3,7 +3,6 @@ use std::error::Error;
 use std::path::Path;
 
 use chrono::DateTime;
-use chrono::prelude::*;
 use configparser::ini::Ini;
 use clap::Parser;
 use home;
