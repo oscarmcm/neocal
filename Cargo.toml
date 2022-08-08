@@ -2,6 +2,16 @@
 name = "neocal"
 version = "0.1.0"
 edition = "2021"
+authors = ["Oscar Cortez <om.cortez.2010@gmail.com>"]
+license-file = "LICENSE"
+description = "Google Calendar Command Line Interface"
+readme = "README.md"
+exclude = ["events.gs"]
+documentation = "https://github.com/oscarmcm/neocal/wiki"
+homepage = "https://github.com/oscarmcm/neocal"
+repository = "https://github.com/oscarmcm/neocal"
+keywords = ["cli", "tui", "google", "calendar"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 futures = "0.3"
@@ -12,3 +22,6 @@ reqwest = { version = "0.11.11", features = ["json"] }
 tokio = { version = "1.12.0", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+term_size = "0.3.2"
+home = "0.5.3"
+chrono = "0.4.20"
