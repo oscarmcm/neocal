@@ -40,6 +40,10 @@ struct Args {
     /// Word to search in the calendar
     #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
     search: Option<String>,
+
+    /// Name of the Time Zone to return the events
+    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
+    timezone: Option<String>,
 }
 
 fn validate_option_value(name: &str) -> Result<(), String> {
@@ -130,11 +134,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .calendar
         .unwrap_or(config.get("neocal", "default").unwrap());
     let view_to_use = args.view.unwrap_or(config.get("neocal", "mode").unwrap());
-
+    let timezone = args.timezone.unwrap_or(
+        config
+            .get(&calendar_to_use, "timezone")
+            .unwrap_or(config.get("neocal", "timezone").unwrap_or("".to_string())),
+    );
     let mut endpoint = Url::parse(&config.get(&calendar_to_use, "endpoint").unwrap())?;
-    if &args.search.as_ref().unwrap().to_string().len() > &0 {
-        let query = format!("q={}", &args.search.as_ref().unwrap().to_string());
-        endpoint.set_query(Some(&query));
+
+    if args.search.is_none() == false {
+        endpoint
+            .query_pairs_mut()
+            .append_pair("q", &args.search.as_ref().unwrap().to_string());
+    };
+    if timezone.to_string().len() > 0 {
+        endpoint
+            .query_pairs_mut()
+            .append_pair("timeZone", &timezone.to_string());
     };
 
     let request = client
