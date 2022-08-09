@@ -23,7 +23,7 @@ const doGet = (event = {}) => {
   };
 
   const calendarEvents = calendarIds.flatMap(item => Calendar.Events.list(item, params).items);
-  const formattedEvents = calendarEvents.map(event => ({
+  const formattedEvents = calendarEvents.map(event => {
     let start_date = new Date(event.start.dateTime ? event.start.dateTime : event.start.date);
     let end_date = new Date(event.start.dateTime ? event.start.dateTime : event.start.date);
     return {
