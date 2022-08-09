@@ -542,6 +542,7 @@ dependencies = [
  "term-table",
  "term_size",
  "tokio",
+ "url",
 ]
 
 [[package]]

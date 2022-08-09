@@ -9,10 +9,12 @@ use home;
 use reqwest;
 use serde::{Deserialize, Serialize};
 use term_size;
-use term_table::row::Row;
-use term_table::table_cell::{Alignment, TableCell};
-use term_table::Table;
-use term_table::TableStyle;
+use term_table::{
+    row::Row,
+    table_cell::{Alignment, TableCell},
+};
+use term_table::{Table, TableStyle};
+use url::Url;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Event {
@@ -32,11 +34,15 @@ struct Args {
     view: Option<String>,
 
     /// Name of the calendar to use
-    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_calendar_name)]
+    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
     calendar: Option<String>,
+
+    /// Word to search in the calendar
+    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
+    search: Option<String>,
 }
 
-fn validate_calendar_name(name: &str) -> Result<(), String> {
+fn validate_option_value(name: &str) -> Result<(), String> {
     if name.trim().len() != name.len() {
         Err(String::from(
             "Values cannot have leading and trailing space",
@@ -47,6 +53,10 @@ fn validate_calendar_name(name: &str) -> Result<(), String> {
 }
 
 fn agenda_view(events: Vec<Event>) {
+    if events.iter().len() == 0 {
+        println!("No Events were found.");
+    };
+
     let mut table = Table::new();
     let mut event_date = "";
 
@@ -121,9 +131,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(config.get("neocal", "default").unwrap());
     let view_to_use = args.view.unwrap_or(config.get("neocal", "mode").unwrap());
 
-    let endpoint = config.get(&calendar_to_use, "endpoint").unwrap();
+    let mut endpoint = Url::parse(&config.get(&calendar_to_use, "endpoint").unwrap())?;
+    if &args.search.as_ref().unwrap().to_string().len() > &0 {
+        let query = format!("q={}", &args.search.as_ref().unwrap().to_string());
+        endpoint.set_query(Some(&query));
+    };
+
     let request = client
-        .get(endpoint)
+        .get(endpoint.as_str())
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .header(reqwest::header::ACCEPT, "application/json")
         .send()
