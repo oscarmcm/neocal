@@ -12,7 +12,7 @@ const optionalParams = {
 };
 
 const doGet = (event = {}) => {
-  const params = {...optionalParams, ...event};
+  const params = {...optionalParams, ...event.parameter};
   const date = new Date();
 
   if (!params.hasOwnProperty('timeMin')) {
