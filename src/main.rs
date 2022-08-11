@@ -120,8 +120,6 @@ fn validate_option_value(name: &str) -> Result<(), String> {
     }
 }
 
-fn request_calendar_endpoint() {}
-
 fn render_agenda_view(events: Vec<Event>) -> std::io::Result<()> {
     if events.iter().len() == 0 {
         eprintln!("No Events were found.");
@@ -202,6 +200,17 @@ async fn get_events(
     if timezone.len() != 0 {
         endpoint.query_pairs_mut().append_pair("timeZone", timezone);
     };
+    if *week {
+        let (mon, sun) = current_week_bounds();
+        endpoint.query_pairs_mut().append_pair(
+            "timeMin",
+            &format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d")).to_string(),
+        );
+        endpoint.query_pairs_mut().append_pair(
+            "timeMax",
+            &format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d")).to_string(),
+        );
+    };
 
     let request = client
         .get(endpoint.as_str())
@@ -280,10 +289,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let mut selected_timezone = timezone.as_ref().unwrap_or(&"".to_string()).to_string();
             if selected_timezone.len() == 0 {
-                selected_timezone = config.get(&calendar_to_use, "timezone").unwrap_or("".to_string()).to_string();
+                selected_timezone = config
+                    .get(&calendar_to_use, "timezone")
+                    .unwrap_or("".to_string())
+                    .to_string();
             };
             if selected_timezone.len() == 0 {
-                selected_timezone = config.get("neocal", "timezone").unwrap_or("".to_string()).to_string();
+                selected_timezone = config
+                    .get("neocal", "timezone")
+                    .unwrap_or("".to_string())
+                    .to_string();
             };
             if selected_timezone.len() == 0 {
                 selected_timezone = "".to_string();
@@ -318,10 +333,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let mut selected_timezone = timezone.as_ref().unwrap_or(&"".to_string()).to_string();
             if selected_timezone.len() == 0 {
-                selected_timezone = config.get(&calendar_to_use, "timezone").unwrap_or("".to_string()).to_string();
+                selected_timezone = config
+                    .get(&calendar_to_use, "timezone")
+                    .unwrap_or("".to_string())
+                    .to_string();
             };
             if selected_timezone.len() == 0 {
-                selected_timezone = config.get("neocal", "timezone").unwrap_or("".to_string()).to_string();
+                selected_timezone = config
+                    .get("neocal", "timezone")
+                    .unwrap_or("".to_string())
+                    .to_string();
             };
             if selected_timezone.len() == 0 {
                 selected_timezone = "".to_string();
