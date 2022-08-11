@@ -2,7 +2,7 @@ use std::env;
 use std::error::Error;
 use std::path::Path;
 
-use chrono::{DateTime, Datelike, NaiveDate, Weekday};
+use chrono::{DateTime, Datelike, Duration, NaiveDate, Weekday};
 use clap::{Parser, Subcommand};
 use configparser::ini::Ini;
 use home;
@@ -209,6 +209,28 @@ async fn get_events(
         endpoint.query_pairs_mut().append_pair(
             "timeMax",
             &format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d")).to_string(),
+        );
+    };
+    if *today {
+        let today = chrono::offset::Local::now();
+        endpoint.query_pairs_mut().append_pair(
+            "timeMin",
+            &format!("{}T00:00:00.000Z", today.format("%Y-%m-%d")).to_string(),
+        );
+        endpoint.query_pairs_mut().append_pair(
+            "timeMax",
+            &format!("{}T23:59:59.000Z", today.format("%Y-%m-%d")).to_string(),
+        );
+    };
+    if *tomorrow {
+        let tomorrow = chrono::offset::Local::now() + Duration::days(1);
+        endpoint.query_pairs_mut().append_pair(
+            "timeMin",
+            &format!("{}T00:00:00.000Z", tomorrow.format("%Y-%m-%d")).to_string(),
+        );
+        endpoint.query_pairs_mut().append_pair(
+            "timeMax",
+            &format!("{}T23:59:59.000Z", tomorrow.format("%Y-%m-%d")).to_string(),
         );
     };
 
