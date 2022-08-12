@@ -202,36 +202,24 @@ async fn get_events(
     };
     if *week {
         let (mon, sun) = current_week_bounds();
-        endpoint.query_pairs_mut().append_pair(
-            "timeMin",
-            &format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d")).to_string(),
-        );
-        endpoint.query_pairs_mut().append_pair(
-            "timeMax",
-            &format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d")).to_string(),
-        );
+        let time_min = format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d"));
+        let time_max = format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d"));
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
     };
     if *today {
         let today = chrono::offset::Local::now();
-        endpoint.query_pairs_mut().append_pair(
-            "timeMin",
-            &format!("{}T00:00:00.000Z", today.format("%Y-%m-%d")).to_string(),
-        );
-        endpoint.query_pairs_mut().append_pair(
-            "timeMax",
-            &format!("{}T23:59:59.000Z", today.format("%Y-%m-%d")).to_string(),
-        );
+        let time_min = format!("{}T00:00:00.000Z", today.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", today.format("%Y-%m-%d"));
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
     };
     if *tomorrow {
         let tomorrow = chrono::offset::Local::now() + Duration::days(1);
-        endpoint.query_pairs_mut().append_pair(
-            "timeMin",
-            &format!("{}T00:00:00.000Z", tomorrow.format("%Y-%m-%d")).to_string(),
-        );
-        endpoint.query_pairs_mut().append_pair(
-            "timeMax",
-            &format!("{}T23:59:59.000Z", tomorrow.format("%Y-%m-%d")).to_string(),
-        );
+        let time_min = format!("{}T00:00:00.000Z", tomorrow.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", tomorrow.format("%Y-%m-%d"));
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
     };
 
     let request = client
