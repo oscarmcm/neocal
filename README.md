@@ -29,15 +29,22 @@ Once you have it installed you need to follow 3 steps in order to complete the c
 **NeoCal** provides a series of subcommands with the following functionality:
 
 ```
-list     - list available calendars
-agenda   - get all the events for the current month in agenda format
-calendar - get all the events for the current month in calendar format
+agenda      Shows user calendar in Agenda-like view mode
+calendar    Shows user calendar in Calendar-like view mode
+help        Print this message or the help of the given subcommand(s)
 ```
 
 And also comes with the following options:
 
 ```
--c / --calendar <NAME> - Name of the calendar to use
+-f, --for <FOR>              Name of the calendar to use
+-h, --help                   Print help information
+-s, --search <SEARCH>        Word to search in the calendar
+-t, --timezone <TIMEZONE>    Name of the Time Zone to return the events
+    --today                  Get calendar entries for today
+    --tomorrow               Get calendar entries for tomorrow
+-V, --version                Print version information
+    --week                   Get calendar entries for the current week
 ```
 
 Run with `--help/-h` for detailed usage.
@@ -48,25 +55,22 @@ List of things to add support in order of importance:
 
 ### High
 
-1. Support for using a custom TimeZone []
-2. Allow number of weeks to view []
+1. Add Calendar view
+2. Allow number of weeks to view
     - Should work for "Agenda" and "Calendar" mode
-3. Agenda and Calendar should b able to filter or show events from Start to End []
-4. Produce builds for Linux and Windows []
+3. Agenda and Calendar shouldb able to filter or show events from Start to End
 
 ### Medium
 
-1. Agenda support "Today" and "Tomorrow" modes []
-2. Allow table style choices []
-3. List User Calendar []
-4. Add Calendar view []
-5. Colorized output []
+1. Allow table style choices
+2. List User Calendar
 
-### Low important tools
+### Low
 
-1. Create events from the CLI []
-2. Edit events from the CLI []
-3. Delete events from the CLI []
-4. Event Popup Reminders []
-5. Theme Support []
+1. Create events from the CLI
+2. Edit events from the CLI
+3. Delete events from the CLI
+4. Event Popup Reminders
+5. Theme Support
+6. Colorized output
 
