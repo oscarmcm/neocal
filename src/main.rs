@@ -99,6 +99,10 @@ enum Commands {
         #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
+
+        #[clap(long)]
+        /// Get calendar entries for the current week
+        week: bool,
     },
 }
 
@@ -178,7 +182,63 @@ fn render_agenda_view(events: Vec<Event>) -> std::io::Result<()> {
 }
 
 fn render_calendar_view(events: Vec<Event>) -> std::io::Result<()> {
-    eprintln!("This command is not yet implemented.");
+    if events.iter().len() == 0 {
+        eprintln!("No Events were found.");
+    };
+
+    let mut table = Table::new();
+    let mut event_date = "";
+
+    table.style = TableStyle::extended();
+    table.max_column_width = if let Some((w, _h)) = term_size::dimensions() {
+        w - 60
+    } else {
+        80
+    };
+    table.add_row(Row::new(vec![
+        TableCell::new("Monday"),
+        TableCell::new("Tuesday"),
+        TableCell::new("Wednesday"),
+        TableCell::new("Thursday"),
+        TableCell::new("Friday"),
+        TableCell::new("Saturday"),
+        TableCell::new("Sunday"),
+    ]));
+
+    let (init_date, end_date) = current_week_bounds();
+    let mut calendar_date = init_date;
+    let mut row = Vec::new();
+    while calendar_date <= end_date {
+        let mut cell_text = calendar_date.format("%d").to_string();
+        for event in events.iter() {
+            println!("{} {}", &event.start_date, calendar_date.to_string());
+            if event.start_date != calendar_date.format("%a %b %d %Y").to_string() {
+                continue;
+            };
+            let event_time = if &event.start_date_time != "" && &event.end_date_time != "" {
+                format!(
+                    "{} - {}",
+                    DateTime::parse_from_rfc3339(&event.start_date_time)
+                        .unwrap()
+                        .format("%H:%M")
+                        .to_string(),
+                    DateTime::parse_from_rfc3339(&event.end_date_time)
+                        .unwrap()
+                        .format("%H:%M")
+                        .to_string(),
+                )
+            } else {
+                "All Day".to_string()
+            };
+            cell_text = cell_text + "\n\n" + &event_time;
+            cell_text = cell_text + &format!("\n- {}\n{}", &event.summary, &event.call);
+        }
+        row.push(TableCell::new(cell_text));
+        calendar_date = calendar_date + Duration::days(1);
+    }
+    table.add_row(Row::new(row));
+
+    println!("{}", table.render());
     return Ok(());
 }
 
@@ -333,6 +393,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             r#for,
             search,
             timezone,
+            week,
         }) => {
             let calendar_to_use = if r#for.is_none() {
                 config.get("neocal", "default").unwrap()
@@ -363,7 +424,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
-                &false,
+                &week,
                 &false,
                 &false,
             )
@@ -404,7 +465,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
-                    &false,
+                    &cli.week,
                     &false,
                     &false,
                 )
