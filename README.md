@@ -1,6 +1,6 @@
 # NeoCal - Google Calendar Command Line Interface
 
-**NeoCal** is a Rust application that allows you to access your Google Calendar(s) from a command line. It uses Google Apps Script platform to build his own data source, making
+**NeoCal** is an application that allows you to access your Google Calendar(s) from a command line. It uses Google Apps Script platform to build his own data source, making
 it less complicated to setup than using OAUTH config tokens.
 
 ## Installation
@@ -12,6 +12,7 @@ If you go the `cargo` route, you need to have it installed (usually using [rustu
 ```
 cargo install neocal
 ```
+
 Then you'll be able to run `neocal` from whichever directory you're in.
 
 If you want other installation option, please go to the [Wiki Page](https://github.com/oscarmcm/neocal/wiki/Installing-Options)
@@ -58,7 +59,7 @@ List of things to add support in order of importance:
 1. Add Calendar view
 2. Allow number of weeks to view
     - Should work for "Agenda" and "Calendar" mode
-3. Agenda and Calendar shouldb able to filter or show events from Start to End
+3. Agenda and Calendar should be able to filter or show events from Start to End
 
 ### Medium
 
