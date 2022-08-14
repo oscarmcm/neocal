@@ -17,7 +17,7 @@ categories = ["command-line-utilities"]
 futures = "0.3"
 configparser = "3.0.0"
 term-table = "1.3.2"
-clap = { version = "3.2.16", features = ["derive"] }
+clap = { version = "3.2.16", features = ["derive", "suggestions", "color"] }
 reqwest = { version = "0.11.11", features = ["json"] }
 tokio = { version = "1.12.0", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
