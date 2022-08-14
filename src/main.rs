@@ -45,6 +45,10 @@ struct Cli {
     /// Name of the Time Zone to return the events
     timezone: Option<String>,
 
+    #[clap(short, long, default_value_t=u32::MIN)]
+    /// Number of weeks to return the events starting from the current week
+    weeks: u32,
+
     #[clap(long)]
     /// Get calendar entries for the current week
     week: bool,
@@ -56,6 +60,9 @@ struct Cli {
     #[clap(long)]
     /// Get calendar entries for tomorrow
     tomorrow: bool,
+
+    #[clap(short, long, parse(from_occurrences))]
+    verbosity: usize,
 }
 
 #[derive(Subcommand)]
@@ -73,6 +80,10 @@ enum Commands {
         #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
+
+        #[clap(short, long, default_value_t=u32::MIN)]
+        /// Number of weeks to return the events starting from the current week
+        weeks: u32,
 
         #[clap(long)]
         /// Get calendar entries for the current week
@@ -99,14 +110,18 @@ enum Commands {
         #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
+
+        #[clap(short, long, default_value_t=u32::MIN)]
+        /// Number of weeks to return the events starting from the current week
+        weeks: u32,
     },
 }
 
-fn current_week_bounds() -> (NaiveDate, NaiveDate) {
+fn week_bounds(weeks_ahead: u32) -> (NaiveDate, NaiveDate) {
     let current_year = chrono::offset::Local::now().year();
     let current_week = chrono::offset::Local::now().iso_week().week();
     let mon = NaiveDate::from_isoywd(current_year, current_week, Weekday::Mon);
-    let sun = NaiveDate::from_isoywd(current_year, current_week, Weekday::Sun);
+    let sun = NaiveDate::from_isoywd(current_year, current_week + weeks_ahead, Weekday::Sun);
     (mon, sun)
 }
 
@@ -187,6 +202,7 @@ async fn get_events(
     url: &str,
     search: &str,
     timezone: &str,
+    weeks: &u32,
     week: &bool,
     today: &bool,
     tomorrow: &bool,
@@ -200,10 +216,17 @@ async fn get_events(
     if timezone.len() != 0 {
         endpoint.query_pairs_mut().append_pair("timeZone", timezone);
     };
-    if *week {
-        let (mon, sun) = current_week_bounds();
+    if *weeks != 0 {
+        let (mon, sun) = week_bounds(*weeks);
         let time_min = format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d"));
-        let time_max = format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", sun.format("%Y-%m-%d"));
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
+    };
+    if *week {
+        let (mon, sun) = week_bounds(0);
+        let time_min = format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", sun.format("%Y-%m-%d"));
         let query = format!("timeMin={}&timeMax={}", time_min, time_max);
         endpoint.set_query(Some(&query));
     };
@@ -286,6 +309,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             r#for,
             search,
             timezone,
+            weeks,
             week,
             today,
             tomorrow,
@@ -319,6 +343,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &weeks,
                 &week,
                 &today,
                 &tomorrow,
@@ -333,6 +358,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             r#for,
             search,
             timezone,
+            weeks,
         }) => {
             let calendar_to_use = if r#for.is_none() {
                 config.get("neocal", "default").unwrap()
@@ -363,6 +389,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &weeks,
                 &false,
                 &false,
                 &false,
@@ -390,6 +417,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &cli.weeks,
                     &cli.week,
                     &cli.today,
                     &cli.tomorrow,
@@ -404,6 +432,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &cli.weeks,
                     &false,
                     &false,
                     &false,
