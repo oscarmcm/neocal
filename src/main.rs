@@ -45,6 +45,10 @@ struct Cli {
     /// Name of the Time Zone to return the events
     timezone: Option<String>,
 
+    #[clap(short, long, default_value_t=u32::MIN)]
+    /// Number of weeks to return the events starting from the current week
+    weeks: u32,
+
     #[clap(long)]
     /// Get calendar entries for the current week
     week: bool,
@@ -56,6 +60,9 @@ struct Cli {
     #[clap(long)]
     /// Get calendar entries for tomorrow
     tomorrow: bool,
+
+    #[clap(short, long, parse(from_occurrences))]
+    verbosity: usize,
 }
 
 #[derive(Subcommand)]
@@ -82,6 +89,10 @@ enum Commands {
         /// End date used to return the events
         end_date: Option<String>,
 
+        #[clap(short, long, default_value_t=u32::MIN)]
+        /// Number of weeks to return the events starting from the current week
+        weeks: u32,
+
         #[clap(long)]
         /// Get calendar entries for the current week
         week: bool,
@@ -107,14 +118,18 @@ enum Commands {
         #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
+
+        #[clap(short, long, default_value_t=u32::MIN)]
+        /// Number of weeks to return the events starting from the current week
+        weeks: u32,
     },
 }
 
-fn current_week_bounds() -> (NaiveDate, NaiveDate) {
+fn week_bounds(weeks_ahead: u32) -> (NaiveDate, NaiveDate) {
     let current_year = chrono::offset::Local::now().year();
     let current_week = chrono::offset::Local::now().iso_week().week();
     let mon = NaiveDate::from_isoywd(current_year, current_week, Weekday::Mon);
-    let sun = NaiveDate::from_isoywd(current_year, current_week, Weekday::Sun);
+    let sun = NaiveDate::from_isoywd(current_year, current_week + weeks_ahead, Weekday::Sun);
     (mon, sun)
 }
 
@@ -196,7 +211,7 @@ fn render_agenda_view(events: Vec<Event>) -> std::io::Result<()> {
     return Ok(());
 }
 
-fn render_calendar_view(events: Vec<Event>) -> std::io::Result<()> {
+fn render_calendar_view(_events: Vec<Event>) -> std::io::Result<()> {
     eprintln!("This command is not yet implemented.");
     return Ok(());
 }
@@ -206,6 +221,9 @@ async fn get_events(
     url: &str,
     search: &str,
     timezone: &str,
+    begin_date: &str,
+    end_date: &str,
+    weeks: &u32,
     week: &bool,
     today: &bool,
     tomorrow: &bool,
@@ -219,10 +237,17 @@ async fn get_events(
     if timezone.len() != 0 {
         endpoint.query_pairs_mut().append_pair("timeZone", timezone);
     };
-    if *week {
-        let (mon, sun) = current_week_bounds();
+    if *weeks != 0 {
+        let (mon, sun) = week_bounds(*weeks);
         let time_min = format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d"));
-        let time_max = format!("{}T00:00:00.000Z", sun.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", sun.format("%Y-%m-%d"));
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
+    };
+    if *week {
+        let (mon, sun) = week_bounds(0);
+        let time_min = format!("{}T00:00:00.000Z", mon.format("%Y-%m-%d"));
+        let time_max = format!("{}T23:59:59.000Z", sun.format("%Y-%m-%d"));
         let query = format!("timeMin={}&timeMax={}", time_min, time_max);
         endpoint.set_query(Some(&query));
     };
@@ -285,7 +310,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut config = Ini::new();
     let config_path = match env::var("NEOCAL_CONFIG_PATH") {
         Ok(val) => val,
-        Err(_e) => match home::home_dir() {
+        Err(_err) => match home::home_dir() {
             Some(path) => Path::join(&path, Path::new("./.config/neocal/config.ini"))
                 .to_str()
                 .unwrap()
@@ -297,9 +322,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("Impossible to get your home dir!");
         panic!();
     };
-    config.load(config_path)?;
 
+    config.load(config_path)?;
     let cli = Cli::parse();
+
     match &cli.command {
         Some(Commands::Agenda {
             r#for,
@@ -307,6 +333,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             timezone,
             begin_date,
             end_date,
+            weeks,
             week,
             today,
             tomorrow,
@@ -335,17 +362,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 selected_timezone = "".to_string();
             };
 
-            println!(
-                "{} {}",
-                begin_date.as_ref().unwrap_or(&"".to_string()),
-                end_date.as_ref().unwrap_or(&"".to_string())
-            );
-
             match get_events(
                 &String::from("agenda"),
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &begin_date.as_ref().unwrap_or(&"".to_string()),
+                &end_date.as_ref().unwrap_or(&"".to_string()),
+                &weeks,
                 &week,
                 &today,
                 &tomorrow,
@@ -360,6 +384,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             r#for,
             search,
             timezone,
+            weeks,
         }) => {
             let calendar_to_use = if r#for.is_none() {
                 config.get("neocal", "default").unwrap()
@@ -390,6 +415,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &"".to_string(),
+                &"".to_string(),
+                &weeks,
                 &false,
                 &false,
                 &false,
@@ -417,6 +445,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &"".to_string(),
+                    &"".to_string(),
+                    &cli.weeks,
                     &cli.week,
                     &cli.today,
                     &cli.tomorrow,
@@ -431,6 +462,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &"".to_string(),
+                    &"".to_string(),
+                    &cli.weeks,
                     &false,
                     &false,
                     &false,
