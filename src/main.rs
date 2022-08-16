@@ -192,7 +192,7 @@ fn render_agenda_view(events: Vec<Event>) -> std::io::Result<()> {
     return Ok(());
 }
 
-fn render_calendar_view(events: Vec<Event>) -> std::io::Result<()> {
+fn render_calendar_view(_events: Vec<Event>) -> std::io::Result<()> {
     eprintln!("This command is not yet implemented.");
     return Ok(());
 }
