@@ -74,6 +74,14 @@ enum Commands {
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
 
+        #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+        /// Start date used to return the events
+        begin_date: Option<String>,
+
+        #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+        /// End date used to return the events
+        end_date: Option<String>,
+
         #[clap(long)]
         /// Get calendar entries for the current week
         week: bool,
@@ -117,6 +125,17 @@ fn validate_option_value(name: &str) -> Result<(), String> {
         ))
     } else {
         Ok(())
+    }
+}
+
+fn validate_option_date(date: &str) -> Result<(), std::io::Error> {
+    match NaiveDate::parse_from_str(date, "%Y-%m-%d") {
+        Ok(parsed_date) => { Ok(()) },
+        Err(err) => {
+            Err(
+                std::io::Error::new(std::io::ErrorKind::Other, format!("Please make sure your dates are in the following format YYYY-MM-DD (ie. 2020-01-01), your dates is: {}", &date))
+            )
+        }
     }
 }
 
@@ -286,6 +305,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             r#for,
             search,
             timezone,
+            begin_date,
+            end_date,
             week,
             today,
             tomorrow,
@@ -313,6 +334,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             if selected_timezone.len() == 0 {
                 selected_timezone = "".to_string();
             };
+
+            println!(
+                "{} {}",
+                begin_date.as_ref().unwrap_or(&"".to_string()),
+                end_date.as_ref().unwrap_or(&"".to_string())
+            );
 
             match get_events(
                 &String::from("agenda"),
