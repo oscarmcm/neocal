@@ -38,7 +38,7 @@ const doGet = (event = {}) => {
   });
 
   return ContentService.createTextOutput(
-    JSON.stringify(simpleEvents)
+    JSON.stringify(formattedEvents)
   ).setMimeType(ContentService.MimeType.JSON);
 };
 

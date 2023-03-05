@@ -1,7 +1,6 @@
-# NeoCal - Google Calendar Command Line Interface
+# NeoCal
 
-**NeoCal** is an application that allows you to access your Google Calendar(s) from a command line. It uses Google Apps Script platform to build his own data source, making
-it less complicated to setup than using OAUTH config tokens.
+**NeoCal** is a Google Calendar Command Line Interface that allows you to access your Google Calendar(s) from a command line. It uses Google Apps Script platform to build his own data source, making it less complicated to setup than using OAUTH config tokens.
 
 ## Installation
 
