@@ -45,6 +45,14 @@ struct Cli {
     /// Name of the Time Zone to return the events
     timezone: Option<String>,
 
+    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+    /// Start date used to return the events
+    begin_date: Option<String>,
+
+    #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+    /// End date used to return the events
+    end_date: Option<String>,
+
     #[clap(short, long, default_value_t=u32::MIN)]
     /// Number of weeks to return the events starting from the current week
     weeks: u32,
@@ -80,6 +88,14 @@ enum Commands {
         #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_value)]
         /// Name of the Time Zone to return the events
         timezone: Option<String>,
+
+        #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+        /// Start date used to return the events
+        begin_date: Option<String>,
+
+        #[clap(short, long, value_parser, forbid_empty_values = true, validator = validate_option_date)]
+        /// End date used to return the events
+        end_date: Option<String>,
 
         #[clap(short, long, default_value_t=u32::MIN)]
         /// Number of weeks to return the events starting from the current week
@@ -125,13 +141,26 @@ fn week_bounds(weeks_ahead: u32) -> (NaiveDate, NaiveDate) {
     (mon, sun)
 }
 
-fn validate_option_value(name: &str) -> Result<(), String> {
+fn validate_option_value(name: &str) -> Result<(), std::io::Error> {
     if name.trim().len() != name.len() {
-        Err(String::from(
-            "Values cannot have leading and trailing space",
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Values cannot have leading and/or trailing space",
         ))
     } else {
         Ok(())
+    }
+}
+
+fn validate_option_date(date: &str) -> Result<(), std::io::Error> {
+    match NaiveDate::parse_from_str(date, "%Y-%m-%d") {
+        Ok(_parsed_date) => Ok(()),
+        Err(_err) => {
+            let err_msg = format!(
+                "Please make sure your dates are in the following format YYYY-MM-DD (ie. 2020-12-21), your dates is: {}", &date
+            );
+            Err(std::io::Error::new(std::io::ErrorKind::Other, err_msg))
+        }
     }
 }
 
@@ -202,6 +231,8 @@ async fn get_events(
     url: &str,
     search: &str,
     timezone: &str,
+    begin_date: &str,
+    end_date: &str,
     weeks: &u32,
     week: &bool,
     today: &bool,
@@ -244,6 +275,12 @@ async fn get_events(
         let query = format!("timeMin={}&timeMax={}", time_min, time_max);
         endpoint.set_query(Some(&query));
     };
+    if begin_date.len() != 0 && end_date.len() != 0 {
+        let time_min = format!("{}T00:00:00.000Z", begin_date);
+        let time_max = format!("{}T23:59:59.000Z", end_date);
+        let query = format!("timeMin={}&timeMax={}", time_min, time_max);
+        endpoint.set_query(Some(&query));
+    };
 
     let request = client
         .get(endpoint.as_str())
@@ -281,7 +318,7 @@ async fn get_events(
             "Uh oh! Something unexpected happened.",
         )),
     };
-    return Ok(());
+    Ok(())
 }
 
 #[tokio::main]
@@ -289,7 +326,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut config = Ini::new();
     let config_path = match env::var("NEOCAL_CONFIG_PATH") {
         Ok(val) => val,
-        Err(_e) => match home::home_dir() {
+        Err(_err) => match home::home_dir() {
             Some(path) => Path::join(&path, Path::new("./.config/neocal/config.ini"))
                 .to_str()
                 .unwrap()
@@ -301,14 +338,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
         eprintln!("Impossible to get your home dir!");
         panic!();
     };
-    config.load(config_path)?;
 
+    config.load(config_path)?;
     let cli = Cli::parse();
+
     match &cli.command {
         Some(Commands::Agenda {
             r#for,
             search,
             timezone,
+            begin_date,
+            end_date,
             weeks,
             week,
             today,
@@ -343,6 +383,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &begin_date.as_ref().unwrap_or(&"".to_string()),
+                &end_date.as_ref().unwrap_or(&"".to_string()),
                 &weeks,
                 &week,
                 &today,
@@ -389,6 +431,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 url,
                 &search.as_ref().unwrap_or(&"".to_string()).to_string(),
                 &selected_timezone,
+                &"".to_string(),
+                &"".to_string(),
                 &weeks,
                 &false,
                 &false,
@@ -417,6 +461,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &cli.begin_date.unwrap_or("".to_string()).to_string(),
+                    &cli.end_date.unwrap_or("".to_string()).to_string(),
                     &cli.weeks,
                     &cli.week,
                     &cli.today,
@@ -432,6 +478,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     url,
                     &cli.search.unwrap_or("".to_string()).to_string(),
                     &timezone,
+                    &"".to_string(),
+                    &"".to_string(),
                     &cli.weeks,
                     &false,
                     &false,

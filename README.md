@@ -56,9 +56,6 @@ List of things to add support in order of importance:
 ### High
 
 1. Add Calendar view
-2. Allow number of weeks to view
-    - Should work for "Agenda" and "Calendar" mode
-3. Agenda and Calendar should be able to filter or show events from Start to End
 
 ### Medium
 
